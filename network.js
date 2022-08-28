@@ -23,6 +23,7 @@ class NeuralNetwork{
                 }
             }
         });
+        console.log("Muatation done: ", amount)
     }
 }
 

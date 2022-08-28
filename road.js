@@ -8,7 +8,7 @@ class Road{
 
         this.infinity = 100000
         this.top = this.infinity
-        this.bottom = -this.infinity
+        this.bottom = -2 * this.infinity
 
         const topLeft={x:this.left, y: this.top}
         const topRight={x:this.right, y: this.top}

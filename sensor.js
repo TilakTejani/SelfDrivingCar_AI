@@ -1,9 +1,9 @@
 class Sensors{
-    constructor(car, rayCount){
+    constructor(car, rayCount, spread){
         this.car = car
         this.rayCount = rayCount
         this.rayLength = 150
-        this.raySpread = Math.PI / 2
+        this.raySpread = spread * Math.PI / 6
         
         this.rays = []
         this.readings = []

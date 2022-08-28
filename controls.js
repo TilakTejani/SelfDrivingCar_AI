@@ -7,7 +7,6 @@ class Controls{
         switch(type){
             case "KEY":
                 this.#addKeyboardListener();
-                console.log("her")
                 break
             case "DUMMY":
                 this.forward = true

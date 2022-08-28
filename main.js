@@ -1,116 +1,130 @@
 const networkCanvas = document.getElementById("networkCanvas")
 const carCanvas = document.getElementById("carCanvas")
-
+const chartCanvas = document.getElementById("scoreChart")
 networkCanvas.width = 400;
-carCanvas.width = 200;
+chartCanvas.width = 400;
+carCanvas.width = window.innerWidth - networkCanvas.width-chartCanvas.width-20;
 let carCtx = carCanvas.getContext('2d')
 let networkCtx = networkCanvas.getContext('2d')
+let chartCtx = chartCanvas.getContext('2d')
+let laneCount = 6
+const carCount = 1
+let generation = 1
+let startingLine = 0
+let score = 0
+let highScore = 0
+let animationReq
 
-const road = new Road(carCanvas.width/2, carCanvas.width * 0.9)
-const carCount = 100
-const trafficCount = 100
-var sensorCount = parseInt(sensorCounter.value)
-var mutateAmount = parseFloat(mutateSlider.value)
-var cars = generateCars(carCount)
-var traffic = generateTraffic(trafficCount)
+
+const road = new Road(carCanvas.width/2, carCanvas.width * 0.9, laneCount)
+var cars = []
+var traffic = null
+var damaged = []
+
+discard()
 initiateAll()
 
-sensorCounter.oninput = function(){
-    sensorCount = parseInt(sensorCounter.value)
-    document.getElementById("sensorCountDisplayer").innerHTML = sensorCount
-    initiateAll()
-}
+async function initiateAll(){
+    cars = []
+    console.log(trafficCount, sensorCount, spread, mutateAmount)
 
-mutateSlider.oninput = function() {
-    mutateAmount = parseFloat(mutateSlider.value)
-    document.getElementById("mutateAmountDisplayer").innerHTML = mutateAmount
-    initiateAll()
-}
-function initiateAll(){
-    cars = generateCars(carCount)
-    traffic = generateTraffic()
-    
+    for(let i = 0 ; i < carCount ; ++i){
+        cars.push(new Car(road.getLaneCenter(1), 100, 30, 50, "AI", 5, sensorCount, spread))
+    }
+    startingLine = cars[0].y
+    traffic = new Traffic(cars[0].y, cars[0].height, trafficCount, 400, laneCount)
+    damaged = []
     for(let i = 0 ; i < carCount ; ++i){
         if(localStorage.getItem("bestBrain")){
             cars[i].brain = JSON.parse(
-            localStorage.getItem("bestBrain"
+                localStorage.getItem("bestBrain"
             ))
         }
-        
-        if(i != 0){
-            NeuralNetwork.mutate(cars[i].brain, mutateAmount)
-        }
+        NeuralNetwork.mutate(cars[i].brain, mutateAmount)
     }
+    carCtx.clearRect(0, 0, carCanvas.width, carCanvas.height);
+    writeText(carCtx, "Generation: " + generation, 100, 100, 30)
+    // await new Promise(x => setTimeout(x, 500))
+
 }
 
-function generateCars(N){
-    let cars = []
-    for(let i = 0 ; i < N ; ++i){
-        cars.push(new Car(road.getLaneCenter(1), 100, 30, 50, "AI", 5, sensorCount))
-    }
-    return cars
-}
-
-function generateTraffic(N){
-    let traffic = [
-        new Car(road.getLaneCenter(1), -100, 30, 50, "DUMMY", 2),
-        new Car(road.getLaneCenter(2), -300, 30, 50, "DUMMY", 2),
-        new Car(road.getLaneCenter(0), -300, 30, 50, "DUMMY", 2),
-        new Car(road.getLaneCenter(0), -500, 30, 50, "DUMMY", 2),
-        new Car(road.getLaneCenter(1), -500, 30, 50, "DUMMY", 2),
-        new Car(road.getLaneCenter(1), -700, 30, 50, "DUMMY", 2),
-        new Car(road.getLaneCenter(2), -700, 30, 50, "DUMMY", 2)
-    ]
-    return traffic
-}
-
-function save(){
-    localStorage.setItem("bestBrain", JSON.stringify(bestCar.brain))
-}
-
-function discard(){
-    localStorage.removeItem("bestBrain")
-}
-
-
-function start(){
-    initiateAll()
-    cars.forEach(car => car.canMove = true)
-    traffic.forEach(car => car.canMove = true)
-    
+async function start(){
+    await initiateAll()
+    disableInput()
     animate()
 }
 
+function stop(){
+    enableInput()
+    cancelAnimationFrame(animationReq)
+}
 
-function animate(time){
-    traffic.forEach(trafficcar => trafficcar.update(road.borders, []) )
-    cars.forEach(car => car.update(road.borders, traffic))
+function storeData(){
+    storeChartImage()
+}
+
+async function animate(time){    
     
-    ;
     
-    bestCar = cars.find(car => 
+    // --------------------- UPDATION -------------------------------
+    // car updation
+    let bestCar = cars.find(car => 
         car.y == Math.min(...cars.map(car => car.y)
     ))
+    for(let i = 0 ; i < cars.length ; ++i){
+        cars[i].update(road.borders, traffic.cars);
+        if(cars[i].damaged){
+            damaged.push(cars[i])
+            cars.splice(i, 1)
+            i--
+        }
+    }
+    score = -Math.floor(bestCar.y - startingLine)
+    
+    
+    // traffic updation
+    traffic.update(bestCar.y, laneCount)
+    traffic.cars.forEach(trafficcar => trafficcar.update(road.borders, traffic.cars))
 
-    save()
+    // if all cars are dead
+    if(cars.length == 0){
+        
+        if(score > highScore)    {
+            console.log("Saving data")
+            save(bestCar)
+            highScore = score
+        }
+        if(generation == 60){
+            stop()
+            enterData()
+        }
+        generation++;
+        updateScoreChart(chartCtx, score)
+        await initiateAll()
+    }
 
-    carCanvas.height = window.innerHeight;
-    networkCanvas.height = window.innerHeight;
+
+
+    // ---------------------- DRAWING ----------------------------
+    carCanvas.height = window.innerHeight - document.getElementById("inputs").clientHeight;
+    networkCanvas.height = window.innerHeight- document.getElementById("inputs").clientHeight;
     
     carCtx.save()
     carCtx.translate(0, -bestCar.y + carCanvas.height * 0.7)
     
     road.draw(carCtx)
-    traffic.forEach(trafficcar => trafficcar.draw(carCtx, "red") )
+    traffic.cars.forEach(trafficcar => trafficcar.draw(carCtx, "red") )
     
     cars.forEach(car => car.draw(carCtx, "blue", false, 0.2))
-
     bestCar.draw(carCtx, "blue", true, 1)
+    damaged.forEach(damagedCar => {if(damagedCar)   damagedCar.draw(carCtx, "blue", false, 0.2)})
+    
     networkCtx.lineDashOffset= time/60
     Visualizer.drawNetwork(networkCtx, bestCar.brain)
     
     carCtx.restore()
-    
-    requestAnimationFrame(animate)
+    writeText(carCtx, "Score : " + score, 30,  60, 20)
+    writeText(carCtx, "Generation : " + generation, 30,  80, 20)
+    animationReq = requestAnimationFrame(animate)
 
 }

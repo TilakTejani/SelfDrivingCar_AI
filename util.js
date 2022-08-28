@@ -1,26 +1,3 @@
-// userInput Part
-
-const mutateSlider = document.getElementById("mutateAmount")
-// let mutateAmount = parseFloat(mutateSlider.value)
-
-const sensorCounter = document.getElementById("sensorCounter")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //   utility functions
 function lerp(A, B, t){
     return A + (B - A) * t;
@@ -71,3 +48,21 @@ function getRGBA(val){
     return "rgba("+R+","+G+","+B+","+alpha+")"
 }
 
+function writeText(ctx, text, x, y, size = 10){
+    ctx.beginPath()
+    ctx.font = size + "px Arial";
+    ctx.fillStyle = "#0a0a0a"
+    ctx.strokeStyle = "#0a0a0a"
+    ctx.fillText(text, x, y);
+    ctx.fill()
+
+    ctx.stroke()
+}
+
+function save(bestCar){
+    localStorage.setItem("bestBrain", JSON.stringify(bestCar.brain))
+}
+
+function discard(){
+    localStorage.removeItem("bestBrain")
+}

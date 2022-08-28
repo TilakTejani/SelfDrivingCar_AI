@@ -1,11 +1,11 @@
 class Car{
-    constructor(x, y, width, height,  controlType, maxspeed = 5, sensorCount = 5){
+    constructor(x, y, width, height,  controlType, maxspeed = 5, sensorCount = 5, sensorSpread = 4){
         this.x = x;
         this.y = y;
         this.width =width
         this.height = height
         
-        this.canMove = false
+        this.canMove = true
         this.speed = 0.0
         this.acceleration = 0.2
         this.friction = 0.03
@@ -16,8 +16,8 @@ class Car{
         this.polygon = this.#createPolygon()
         
         if(controlType === "KEY" || controlType === "AI"){
-            this.sensors = new Sensors(this, sensorCount);
-            this.brain = new NeuralNetwork([sensorCount, 6, 4])  // 6 for hiddenlayer count 6
+            this.sensors = new Sensors(this, sensorCount, sensorSpread);
+            this.brain = new NeuralNetwork([sensorCount, 6, 4, 6, 4])  // 6 for hiddenlayer count 6
         }
         this.control = new Controls(controlType);
     }
@@ -30,19 +30,18 @@ class Car{
         else{
             ctx.fillStyle = color
         }
+        if(this.sensors && sensorDrawing){
+            this.sensors.draw(ctx)
+        }
         ctx.beginPath();
         ctx.moveTo(this.polygon[0].x, this.polygon[0].y)
         for(let i = 1; i < this.polygon.length ; ++i){
             ctx.lineTo(this.polygon[i].x, this.polygon[i].y)
         }
         ctx.fill();
-        if(this.sensors && sensorDrawing){
-            this.sensors.draw(ctx)
-        }
     }
 
     update(roadBorders, traffic){
-
         if(this.canMove && !this.damaged){
             this.#move()
             this.polygon = this.#createPolygon()
@@ -74,7 +73,7 @@ class Car{
         }
 
         for(let i = 0 ; i < traffic.length; ++i){
-            if(polyIntersect(this.polygon, traffic[i].polygon)){
+            if(!(this === traffic[i]) && polyIntersect(this.polygon, traffic[i].polygon)){
                 return true
             }
         }

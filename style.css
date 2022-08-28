@@ -1,15 +1,21 @@
 body{
-    margin: 0;
+    margin: 0px;
     background : grey;
-    overflow: hidden;    
+    overflow: hidden;   
+}
+#main{
     display: flex;
     justify-content: center;
     align-items: center;
 }
-#inputs{
-    display: flex;
-    flex-direction: column;
 
+#inputs{
+    margin:0px;
+    display: flex;
+    flex-direction: row;
+    border-bottom: 2px double #0a0a0a;
+    position: relative;
+    background:rgba(106, 95, 95, 0.35);
 }
 
 #inputs #label{
@@ -58,4 +64,12 @@ button:hover{
 
 #carCanvas{
     background-color: lightgrey;
+}
+
+#scoreChart{
+    margin-left: 25px;
+    background-color: rgb(255, 253, 253);
+    width: 450px;
+    height: 1000px;
+    border: 2px solid #0a0a0a;
 }
